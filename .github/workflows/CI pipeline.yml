@@ -80,9 +80,8 @@ jobs:
         # --severity HIGH,CRITICAL: Only report high and critical vulnerabilities
         # --exit-code 1: Exit with code 1 if vulnerabilities are found (making the step fail)
         # --format table: Output results in a human-readable table format
-        trivy image --severity HIGH,CRITICAL --format table ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        trivy image --severity HIGH,CRITICAL --format table ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
         # If you want to allow warnings and just see the report, remove --exit-code 1
-        # trivy image --severity HIGH,CRITICAL --format table ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
     - name: Push Docker image to Azure Container Registry
       run: |
