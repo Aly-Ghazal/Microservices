@@ -9,7 +9,7 @@ on:
 env:
   AZURE_CONTAINER_REGISTRY: akssecureacr.azurecr.io # Replace with your ACR name (e.g., myregistry.azurecr.io)
   IMAGE_NAME: microservices-app # Name for your Docker image
-  IMAGE_TAG: 3.0
+  IMAGE_TAG: "3.0"
 
 jobs:
   build-and-deploy:
