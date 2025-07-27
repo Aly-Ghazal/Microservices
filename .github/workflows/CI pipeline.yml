@@ -1,0 +1,88 @@
+name: Flask App CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  AZURE_CONTAINER_REGISTRY: akssecureacr.azurecr.io # Replace with your ACR name (e.g., myregistry.azurecr.io)
+  IMAGE_NAME: microservices-app # Name for your Docker image
+  IMAGE_TAG: "3.0"
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted # Use your self-hosted runner
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4 # Checks out your repository code
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9' # Specify your Python version
+# Already Installed
+    # - name: Install Python dependencies for static analysis
+    #   run: |
+    #     python -m pip install --upgrade pip
+    #     pip install flake8 # Install flake8 for static code analysis
+    #     # If your Flask app has a requirements.txt, you might also want to install them here
+    #     # pip install -r requirements.txt
+        # --- Static Code Analysis Explanation ---
+        # This step uses Flake8 to check your Python code for style guide violations (like PEP 8)
+        # and potential programming errors.
+
+        # Command 1: Strict check for critical errors
+        # This command will fail the pipeline if fundamental errors are found.
+        # - '.': Analyze all Python files in the current directory and subdirectories.
+        # - '--count': Display the total number of errors and warnings.
+        # - '--select=E9,F63,F7,F82': Only report critical errors:
+        #   - E9: Syntax errors
+        #   - F63: Variable used before assignment
+        #   - F7: Unused variables or imports
+        #   - F82: Undefined names
+        # - '--show-source': Show the line of code where the error occurred.
+        # - '--statistics': Provide a summary of error types found.
+
+        # Command 2: Comprehensive style and complexity check (non-blocking)
+        # This command reports on style issues and code complexity but will NOT fail the pipeline.
+        # - '--exit-zero': Always exit with a success code (0), even if issues are found.
+        #                  This prevents this specific check from failing the build.
+        # - '--max-complexity=10': Sets the maximum McCabe complexity allowed for functions/methods.
+        #                          Higher complexity indicates harder-to-understand code.
+        # - '--max-line-length=120': Enforces a maximum line length of 120 characters.
+    - name: Run static code analysis (Flake8)
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+        # The '.' at the end specifies the build context (current directory) where your Dockerfile is located.
+
+# Already Installed
+    # - name: Install Trivy
+    #   run: |
+    #     # Install Trivy for vulnerability scanning
+    #     sudo apt-get update
+    #     sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+    #     wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+    #     echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+    #     sudo apt-get update
+    #     sudo apt-get install trivy -y
+
+    - name: Scan Docker image with Trivy
+      run: |
+        # Scan the built image for vulnerabilities
+        # --severity HIGH,CRITICAL: Only report high and critical vulnerabilities
+        # --exit-code 1: Exit with code 1 if vulnerabilities are found (making the step fail)
+        # --format table: Output results in a human-readable table format
+        trivy image --severity HIGH,CRITICAL --format table ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        # If you want to allow warnings and just see the report, remove --exit-code 1
+
+    - name: Push Docker image to Azure Container Registry
+      run: |
+        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
