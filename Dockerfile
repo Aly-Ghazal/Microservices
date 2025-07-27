@@ -7,14 +7,14 @@ WORKDIR /app
 
 # Copy only the requirements file first to leverage Docker's layer caching.
 # If requirements.txt doesn't change, this layer won't be rebuilt.
-COPY ./Microservices/requirements.txt .
+COPY ./requirements.txt .
 
 # Install application dependencies.
 # Ensure Flask and Werkzeug versions in requirements.txt are compatible to avoid ImportErrors.
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code into the builder container.
-COPY ./Microservices .
+COPY . .
 
 # --- Stage 2: Runner ---
 # This stage creates the final, lean image for running the application.
